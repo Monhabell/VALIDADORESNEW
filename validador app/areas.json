@@ -1,0 +1,16 @@
+{
+    "EDUCATIVO": [
+        {
+            "nombre": "SESIONES",
+            "reglas": [
+                {
+                    "columna": "NACIONALIDAD",
+                    "tipo": "dependiente",
+                    "columna_dependiente": "TIPO DOCUMENTO",
+                    "valor_dependiente": "3- TI",
+                    "valor_esperado": "COL"
+                }
+            ]
+        }
+    ]
+}
