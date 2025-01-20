@@ -1,0 +1,59 @@
+{
+    "EDUCATIVO": [
+        {
+            "nombre": "Sesiones pag 1",
+            "reglas": []
+        },
+        {
+            "nombre": "Sesiones pagina 2",
+            "reglas": []
+        },
+        {
+            "nombre": "Sesiones Pag 3 (individuos)",
+            "reglas": [
+                {
+                    "columna": "NACIONALIDAD",
+                    "tipo": "dependiente positivo",
+                    "columna_dependiente": "TIPO DOCUMENTO",
+                    "valor_dependiente": "3- TI",
+                    "valor_esperado": "COL"
+                },
+                {
+                    "columna": "NACIONALIDAD",
+                    "tipo": "dependiente positivo",
+                    "columna_dependiente": "TIPO DOCUMENTO",
+                    "valor_dependiente": "2- RC",
+                    "valor_esperado": "COL"
+                },
+                {
+                    "columna": "NACIONALIDAD",
+                    "tipo": "dependiente positivo",
+                    "columna_dependiente": "TIPO DOCUMENTO",
+                    "valor_dependiente": "1- CC",
+                    "valor_esperado": "COL"
+                },
+                {
+                    "columna": "G\u00c9NERO",
+                    "tipo": "dependiente positivo",
+                    "columna_dependiente": "SEXO",
+                    "valor_dependiente": "2- Mujer",
+                    "valor_esperado": "2- Femenino"
+                },
+                {
+                    "columna": "G\u00c9NERO",
+                    "tipo": "dependiente positivo",
+                    "columna_dependiente": "SEXO",
+                    "valor_dependiente": "1- Hombre",
+                    "valor_esperado": "1- Masculino"
+                },
+                {
+                    "columna": "PDI",
+                    "tipo": "dependiente",
+                    "columna_dependiente": "NACIONALIDAD",
+                    "valor_dependiente": "VEN",
+                    "valor_esperado": "14- No Aplica"
+                }
+            ]
+        }
+    ]
+}

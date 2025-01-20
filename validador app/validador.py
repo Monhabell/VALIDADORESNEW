@@ -8,6 +8,8 @@ from tkinter import filedialog, messagebox
 import openpyxl
 from openpyxl.styles import PatternFill
 
+
+
 # Ruta del archivo JSON donde se guardarán las áreas
 archivo_json = "areas.json"
 
@@ -25,10 +27,10 @@ def guardar_areas():
 
 # Función para agregar un área
 def agregar_area():
-    nueva_area = simpledialog.askstring("Agregar Área", "Ingrese el nombre de la nueva área:")
+    nueva_area = simpledialog.askstring("Agregar Área", "Ingrese el nombre del entorno:")
     if nueva_area:
         if nueva_area in areas:
-            messagebox.showerror("Error", "El área ya existe.")
+            messagebox.showerror("Error", "El entorno ya existe.")
             return
         areas[nueva_area] = []  # Cada área comienza con una lista vacía de validadores
         guardar_areas()
@@ -69,7 +71,7 @@ def seleccionar_area(area):
     # Mostrar las opciones para el área seleccionada
     ctk.CTkLabel(
         frame_derecho,
-        text=f"Validadores del área: {area}",
+        text=f"Validadores del Entorno: {area}",
         font=ctk.CTkFont(size=16, weight="bold")
     ).pack(pady=10)
     
@@ -91,7 +93,7 @@ def seleccionar_area(area):
     # Botón para eliminar el área actual
     ctk.CTkButton(
         frame_derecho,
-        text="Eliminar Área",
+        text="Eliminar Entorno",
         fg_color="red",
         command=lambda: eliminar_area(area)
     ).pack(pady=10)
@@ -152,69 +154,138 @@ def gestionar_validador(area, validador):
 # Función para agregar una regla a un validador
 def agregar_regla(area, validador):
     
-    columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar (por ejemplo, A):")
-    if not columna:
-        return
+   
     
-    # Definir los tipos de reglas que pueden crearse
-    tipo_regla = simpledialog.askstring(
-        "Tipo de Regla", 
-        "Seleccione el tipo de regla (longitud, numerico, regex, unico):"
+    # Crear una ventana modal
+    modal = ctk.CTkToplevel()
+    modal.title("Seleccionar Tipo de Regla")
+    modal.geometry("300x200")
+    modal.grab_set()  # Bloquea la ventana principal hasta que se cierre esta
+
+    tipo_regla_var = ctk.StringVar(value="longitud")  # Valor predeterminado
+
+    ctk.CTkLabel(modal, text="Seleccione el tipo de regla:").pack(pady=10)
+    tipo_regla_menu = ctk.CTkOptionMenu(
+        modal, 
+        values=["longitud", "numerico", "regex", "unico", "dependiente positivo", "dependiente error" ,"no_vacio"], 
+        variable=tipo_regla_var
     )
-    
-    if not tipo_regla:
-        return
-    
-    if tipo_regla == "longitud":
-        condicion = simpledialog.askstring("Longitud", "Ingrese la longitud máxima (ejemplo: 10):")
-        if not condicion:
-            return
-        nueva_regla = {"columna": columna, "tipo": "longitud", "condicion": f"<= {condicion}"}
-    
-    elif tipo_regla == "numerico":
-        condicion = simpledialog.askstring("Numerico", "Ingrese la condición (ejemplo: mayor que 5):")
-        if not condicion:
-            return
-        nueva_regla = {"columna": columna, "tipo": "numerico", "condicion": condicion}
-    
-    elif tipo_regla == "regex":
-        patron = simpledialog.askstring("Expresión Regular", "Ingrese el patrón regex (ejemplo: \\d{3}-\\d{2}-\\d{4}):")
-        if not patron:
-            return
-        nueva_regla = {"columna": columna, "tipo": "regex", "patron": patron}
-    
-    elif tipo_regla == "unico":
-        nueva_regla = {"columna": columna, "tipo": "unico"}
+    tipo_regla_menu.pack(pady=10)
+
+    def confirmar_tipo_regla():
+        tipo_regla = tipo_regla_var.get()
+        modal.destroy()  # Cerrar la ventana modal
         
-    elif tipo_regla == "dependiente":
-        # Preguntar si la regla depende de otra columna
-        columna_dependiente = simpledialog.askstring("Columna Dependiente", "¿De qué columna depende esta regla? (por ejemplo, A):")
-        if not columna_dependiente:
-            return
-        valor_dependiente = simpledialog.askstring("Valor Dependiente", "¿Qué valor debe tener la columna dependiente? (ejemplo: 50):")
-        if not valor_dependiente:
-            return
-        valor_dependiente = float(valor_dependiente) if valor_dependiente.replace('.', '', 1).isdigit() else valor_dependiente
+        if tipo_regla == "longitud":
+            
+            columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar por longitud (por ejemplo, Cedula):")
+            if not columna:
+                return
+            condicion = simpledialog.askstring("Longitud", "Ingrese la longitud máxima (ejemplo: 10):")
+            
+            if not condicion:
+                return
+            nueva_regla = {"columna": columna, "tipo": "longitud", "condicion": f"<= {condicion}"}
         
-        valor_esperado = simpledialog.askstring("Valor Esperado", "¿Qué valor debe tener la columna a validar si la columna dependiente tiene este valor? (ejemplo: 51):")
-        if not valor_esperado:
-            return
+        elif tipo_regla == "numerico":
+            columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar numerico (por ejemplo, Telefono):")
+            if not columna:
+                return
+            condicion = simpledialog.askstring("Numerico", "Ingrese la condición (ejemplo: 'mayor  5'):")
+            if not condicion:
+                return
+            nueva_regla = {"columna": columna, "tipo": "numerico", "condicion": condicion}
         
-        nueva_regla = {
-            "columna": columna, 
-            "tipo": "dependiente", 
-            "columna_dependiente": columna_dependiente, 
-            "valor_dependiente": valor_dependiente, 
-            "valor_esperado": valor_esperado
-        }
-    
-    else:
-        messagebox.showerror("Error", "Tipo de regla no reconocido.")
-        return
-    
-    validador["reglas"].append(nueva_regla)
-    guardar_areas()
-    gestionar_validador(area, validador)
+        elif tipo_regla == "regex":
+            columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar para que no tenga caracteres especiales (por ejemplo, Nombres):")
+            if not columna:
+                return
+            patron = simpledialog.askstring("Expresión Regular", "Ingrese el patrón regex (ejemplo: \\d{3}-\\d{2}-\\d{4}):")
+            if not patron:
+                return
+            nueva_regla = {"columna": columna, "tipo": "regex", "patron": patron}
+        
+        elif tipo_regla == "unico":
+            columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar para qvalores unicos (por ejemplo, Nombres):")
+            if not columna:
+                return  
+            nueva_regla = {"columna": columna, "tipo": "unico"}
+        
+        elif tipo_regla == "dependiente positivo":
+            columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar numerico (por ejemplo, Telefono):")
+            if not columna:
+                return
+            
+            columna_dependiente = simpledialog.askstring("Columna Dependiente", "¿De qué columna depende esta regla? (por ejemplo, A):")
+            if not columna_dependiente:
+                return
+            valor_dependiente = simpledialog.askstring("Valor Dependiente", "¿Qué valor debe tener la columna dependiente? (ejemplo: 50):")
+            if not valor_dependiente:
+                return
+            valor_dependiente = float(valor_dependiente) if valor_dependiente.replace('.', '', 1).isdigit() else valor_dependiente
+            
+            valor_esperado = simpledialog.askstring("Valor Esperado", "¿Qué valor debe tener la columna a validar si la columna dependiente tiene este valor? (ejemplo: 51):")
+            if not valor_esperado:
+                return
+            
+            nueva_regla = {
+                "columna": columna, 
+                "tipo": "dependiente", 
+                "columna_dependiente": columna_dependiente, 
+                "valor_dependiente": valor_dependiente, 
+                "valor_esperado": valor_esperado
+            }
+            
+        elif tipo_regla == "dependiente error":
+            columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar numerico (por ejemplo, Telefono):")
+            if not columna:
+                return
+            
+            columna_dependiente = simpledialog.askstring("Columna Dependiente", "¿De qué columna depende esta regla? (por ejemplo, A):")
+            if not columna_dependiente:
+                return
+            valor_dependiente = simpledialog.askstring("Valor Dependiente", "¿Qué valor debe tener la columna dependiente? (ejemplo: VEN):")
+            if not valor_dependiente:
+                return
+            valor_dependiente = float(valor_dependiente) if valor_dependiente.replace('.', '', 1).isdigit() else valor_dependiente
+            
+            valor_esperado = simpledialog.askstring("Valor Esperado", "¿Qué valor debe tener la columna a validar si la columna dependiente tiene este valor? (ejemplo: NO APLICA):")
+            if not valor_esperado:
+                return
+            
+            nueva_regla = {
+                "columna": columna, 
+                "tipo": "dependiente", 
+                "columna_dependiente": columna_dependiente, 
+                "valor_dependiente": valor_dependiente, 
+                "valor_esperado": valor_esperado
+            }
+            
+            
+        elif tipo_regla == "no_vacio":
+            columnas = simpledialog.askstring(
+                "No Vacío", 
+                "Ingrese las columnas que no pueden estar vacías, separadas por comas (ejemplo: A, B, C):"
+            )
+            if not columnas:
+                return
+            columna = "Ficha_fic"
+            columnas = [col.strip() for col in columnas.split(",") if col.strip()]
+            nueva_regla = {"columna": columna, "tipo": "no_vacio", "columnas": columnas}
+                  
+        else:
+            messagebox.showerror("Error", "Tipo de regla no reconocido.")
+            return
+
+        validador["reglas"].append(nueva_regla)
+        guardar_areas()
+        gestionar_validador(area, validador)
+
+    # Botón para confirmar la selección
+    confirmar_btn = ctk.CTkButton(modal, text="Confirmar", command=confirmar_tipo_regla)
+    confirmar_btn.pack(pady=20)
+
+    modal.protocol("WM_DELETE_WINDOW", modal.destroy)  # Permite cerrar la ventana con la 'X'
 
 
 # Función para editar una regla
@@ -226,8 +297,6 @@ def editar_regla(area, validador, regla):
         guardar_areas()
         gestionar_validador(area, validador)
 
-# Función para analizar un archivo Excel
-import re
 
 def analizar_excel(validador):
     archivo_excel = filedialog.askopenfilename(
@@ -259,6 +328,8 @@ def analizar_excel(validador):
                         for idx in violaciones.index:
                             # Marcar en rojo las celdas que violan la regla de longitud
                             ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill  # +2 por el encabezado
+                            ws.cell(row=idx + 2, column=2).fill = rojo_fill  # Marcar en rojo
+                            
 
                     elif tipo == "numerico":
                         try:
@@ -272,22 +343,33 @@ def analizar_excel(validador):
 
                             for idx in violaciones.index:
                                 ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill  # Marcar en rojo
+                                ws.cell(row=idx + 2, column=2).fill = rojo_fill  # Marcar en rojo
+                                
 
                         except ValueError:
                             pass
 
                     elif tipo == "regex":
                         patron = regla["patron"]
-                        violaciones = df[columna][~df[columna].astype(str).str.match(patron)]
+                        # Normalizar los datos
+                        df[columna] = df[columna].astype(str).str.strip()
+                        
+                        # Filtrar las filas que no cumplen con el patrón
+                        violaciones = df[columna][df[columna].str.fullmatch(patron) == False]
+                        
                         for idx in violaciones.index:
                             ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill  # Marcar en rojo
+                            ws.cell(row=idx + 2, column=2).fill = rojo_fill  # Marcar en rojo
+                            
 
                     elif tipo == "unico":
                         duplicados = df[columna][df[columna].duplicated()]
                         for idx in duplicados.index:
-                            ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill  # Marcar en rojo
+                            ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill
+                            ws.cell(row=idx + 2, column=2).fill = rojo_fill  # Marcar en rojo
+                            # Marcar en rojo
 
-                    elif tipo == "dependiente":
+                    elif tipo == "dependiente positivo":
                         columna_dependiente = regla.get("columna_dependiente")
                         valor_dependiente = regla.get("valor_dependiente")
                         valor_esperado = regla.get("valor_esperado")
@@ -302,13 +384,57 @@ def analizar_excel(validador):
                             # Solo marcar en rojo las filas que no cumplen con la condición
                             for idx in violaciones.index:
                                 # Marcar en rojo las celdas que no cumplen la condición (solo las filas con violaciones)
+                                ws.cell(row=idx + 2, column=2).fill = rojo_fill  # Marcar en rojo
                                 ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill
                         else:
                             messagebox.showinfo("Advertencia", f"Columna dependiente '{columna_dependiente}' no encontrada en el archivo Excel.")
+                            
+                    elif tipo == "no_vacio":
+                        columnas = regla.get("columnas")
+                        print("Columnas a verificar:", columnas)  # Imprimir para verificar las columnas
 
+                        # Asegúrate de que 'columna' sea una lista
+                        if isinstance(columnas, str):  # Si 'columna' es una cadena en lugar de lista
+                            columnas = [columnas]  # Convertirla en una lista
+                        
+                        for columna in columnas:
+                            if columna in df.columns:
+                                col_idx = df.columns.get_loc(columna) + 1  # Obtener el índice de la columna en openpyxl (1-based)
+                                print(f"Índice de columna '{columna}': {col_idx}")
+                                # Filtrar las filas que tienen valores vacíos en la columna
+                                violaciones = df[df[columna].isnull() | (df[columna] == "")]
+                                print(f"Violaciones encontradas en columna '{columna}': {violaciones.index.tolist()}")
+                                for idx in violaciones.index:
+                                    print(f"Marcando fila {idx} en columna {columna}")  # Imprimir para depurar
+                                    # Marcar en rojo las celdas que tienen valores vacíos en la columna principal
+                                    ws.cell(row=idx + 2, column=2).fill = rojo_fill  # Marcar en rojo
+                                    ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill  # Marcar en rojo otra celda relacionada, si es necesario
+                            else:
+                                messagebox.showinfo("Advertencia", f"Columna '{columna}' no encontrada en el archivo Excel.")
 
+                    elif tipo == "dependiente error":
+                    
+                        columna_dependiente = regla.get("columna_dependiente")
+                        valor_dependiente = regla.get("valor_dependiente")
+                        valor_esperado = regla.get("valor_esperado")
 
+                        if columna_dependiente in df.columns:
+                            # Filtrar las filas donde la columna dependiente tenga el valor esperado
+                            filas_dependientes = df[df[columna_dependiente] == valor_dependiente]
+
+                            # Filtrar las filas que NO cumplen con el valor esperado en la columna principal
+                            violaciones = filas_dependientes[filas_dependientes[columna] == valor_esperado]
+
+                            # Solo marcar en rojo las filas que no cumplen con la condición
+                            for idx in violaciones.index:
+                                # Marcar en rojo las celdas que no cumplen la condición (solo las filas con violaciones)
+                                ws.cell(row=idx + 2, column=2).fill = rojo_fill  # Marcar en rojo
+                                ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill
+                        else:
+                            messagebox.showinfo("Advertencia", f"Columna dependiente '{columna_dependiente}' no encontrada en el archivo Excel.")
+                    
                 else:
+                    
                     messagebox.showinfo("Advertencia", f"Columna '{columna}' no encontrada en el archivo Excel.")
 
             # Guardar el nuevo archivo Excel con las celdas marcadas
