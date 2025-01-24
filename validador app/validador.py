@@ -167,7 +167,7 @@ def agregar_regla(area, validador):
     ctk.CTkLabel(modal, text="Seleccione el tipo de regla:").pack(pady=10)
     tipo_regla_menu = ctk.CTkOptionMenu(
         modal, 
-        values=["longitud", "numerico", "regex", "unico", "dependiente positivo", "dependiente error" ,"no_vacio"], 
+        values=["longitud", "numerico", "regex", "unico", "dependiente_positivo", "dependiente_error" ,"no_vacio", "dependiente longitud", "dependiente edad"], 
         variable=tipo_regla_var
     )
     tipo_regla_menu.pack(pady=10)
@@ -211,8 +211,8 @@ def agregar_regla(area, validador):
                 return  
             nueva_regla = {"columna": columna, "tipo": "unico"}
         
-        elif tipo_regla == "dependiente positivo":
-            columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar numerico (por ejemplo, Telefono):")
+        elif tipo_regla == "dependiente_positivo":
+            columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar  (por ejemplo, Telefono):")
             if not columna:
                 return
             
@@ -225,18 +225,19 @@ def agregar_regla(area, validador):
             valor_dependiente = float(valor_dependiente) if valor_dependiente.replace('.', '', 1).isdigit() else valor_dependiente
             
             valor_esperado = simpledialog.askstring("Valor Esperado", "¿Qué valor debe tener la columna a validar si la columna dependiente tiene este valor? (ejemplo: 51):")
+            
             if not valor_esperado:
                 return
             
             nueva_regla = {
                 "columna": columna, 
-                "tipo": "dependiente", 
+                "tipo": "dependiente positivo", 
                 "columna_dependiente": columna_dependiente, 
                 "valor_dependiente": valor_dependiente, 
                 "valor_esperado": valor_esperado
             }
             
-        elif tipo_regla == "dependiente error":
+        elif tipo_regla == "dependiente_error":
             columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar numerico (por ejemplo, Telefono):")
             if not columna:
                 return
@@ -255,7 +256,7 @@ def agregar_regla(area, validador):
             
             nueva_regla = {
                 "columna": columna, 
-                "tipo": "dependiente", 
+                "tipo": "dependiente_error", 
                 "columna_dependiente": columna_dependiente, 
                 "valor_dependiente": valor_dependiente, 
                 "valor_esperado": valor_esperado
@@ -272,7 +273,60 @@ def agregar_regla(area, validador):
             columna = "Ficha_fic"
             columnas = [col.strip() for col in columnas.split(",") if col.strip()]
             nueva_regla = {"columna": columna, "tipo": "no_vacio", "columnas": columnas}
-                  
+        
+        
+        elif tipo_regla == "dependiente longitud":
+            
+            columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar (por ejemplo, DOCUMENTO):")
+            if not columna:
+                return
+            
+            columna_dependiente = simpledialog.askstring("Columna Dependiente", "¿De qué columna depende esta regla? (por ejemplo, TIPO DOCUMENTO ):")
+            if not columna_dependiente:
+                return 
+            
+            valor_dependiente = simpledialog.askstring("Valor Dependiente", "¿Qué valor debe tener la columna dependiente? (ejemplo: 3- TI):")
+            if not valor_dependiente:
+                return
+            
+            valor_esperado = simpledialog.askstring("Valor Esperado", "Que cantidad de digitos debe tener la columna a validar (por ejemplo: 10)")
+            if not valor_esperado:
+                return
+            
+            nueva_regla = {
+                "columna": columna,
+                "tipo": "dependiente longitud",
+                "columna_dependiente": columna_dependiente,
+                "valor_dependiente": valor_dependiente, 
+                "valor_esperado": f"<= {valor_esperado}"
+            }
+        
+        elif tipo_regla == "dependiente edad":
+            
+            columna = simpledialog.askstring("Agregar Regla", "Ingrese la columna a validar (por ejemplo, ESTADO CIVIL):")
+            if not columna:
+                return
+            
+            columna_dependiente = simpledialog.askstring("Columna Dependiente", "¿De qué columna depende esta regla? (por ejemplo, FECHA DE NACIMIENTO ):")
+            if not columna_dependiente:
+                return 
+            
+            valor_dependiente = simpledialog.askstring("Valor Dependiente", "indique la edad o rango de edades separados por coma mierda (por ejemplo: 7,17 )")
+            if not valor_dependiente:
+                return
+            
+            valor_esperado = simpledialog.askstring("Valor Esperado", "valor esperado segun la edad")
+            if not valor_esperado:
+                return
+            
+            nueva_regla = {
+                "columna": columna,
+                "tipo": "dependiente longitud",
+                "columna_dependiente": columna_dependiente,
+                "valor_dependiente": valor_dependiente, 
+                "valor_esperado": valor_esperado
+            }
+                    
         else:
             messagebox.showerror("Error", "Tipo de regla no reconocido.")
             return
@@ -317,11 +371,13 @@ def analizar_excel(validador):
 
             for regla in validador["reglas"]:
                 columna = regla.get("columna")
+               
+                
                 tipo = regla.get("tipo")
 
                 if columna in df.columns:
                     col_idx = df.columns.get_loc(columna) + 1  # Obtener el índice de la columna en openpyxl (1-based)
-
+                    
                     if tipo == "longitud":
                         max_longitud = int(regla["condicion"].split("<= ")[1])
                         violaciones = df[columna][df[columna].astype(str).str.len() > max_longitud]
@@ -373,6 +429,8 @@ def analizar_excel(validador):
                         columna_dependiente = regla.get("columna_dependiente")
                         valor_dependiente = regla.get("valor_dependiente")
                         valor_esperado = regla.get("valor_esperado")
+                        columna_dependiente1 = regla.get("columna_dependiente")
+                        idx_dependiente1 = df.columns.get_loc(columna_dependiente1) + 1
 
                         if columna_dependiente in df.columns:
                             # Filtrar las filas donde la columna dependiente tenga el valor esperado
@@ -385,7 +443,10 @@ def analizar_excel(validador):
                             for idx in violaciones.index:
                                 # Marcar en rojo las celdas que no cumplen la condición (solo las filas con violaciones)
                                 ws.cell(row=idx + 2, column=2).fill = rojo_fill  # Marcar en rojo
-                                ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill
+                                ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill  
+                                ws.cell(row=idx + 2, column=idx_dependiente1).fill = rojo_fill
+                                
+                                
                         else:
                             messagebox.showinfo("Advertencia", f"Columna dependiente '{columna_dependiente}' no encontrada en el archivo Excel.")
                             
@@ -412,11 +473,13 @@ def analizar_excel(validador):
                             else:
                                 messagebox.showinfo("Advertencia", f"Columna '{columna}' no encontrada en el archivo Excel.")
 
-                    elif tipo == "dependiente error":
+                    elif tipo == "dependiente_error":
                     
                         columna_dependiente = regla.get("columna_dependiente")
                         valor_dependiente = regla.get("valor_dependiente")
                         valor_esperado = regla.get("valor_esperado")
+                        columna_dependiente1 = regla.get("columna_dependiente")
+                        idx_dependiente1 = df.columns.get_loc(columna_dependiente1) + 1
 
                         if columna_dependiente in df.columns:
                             # Filtrar las filas donde la columna dependiente tenga el valor esperado
@@ -430,6 +493,68 @@ def analizar_excel(validador):
                                 # Marcar en rojo las celdas que no cumplen la condición (solo las filas con violaciones)
                                 ws.cell(row=idx + 2, column=2).fill = rojo_fill  # Marcar en rojo
                                 ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill
+                                ws.cell(row=idx + 2, column=idx_dependiente1).fill = rojo_fill
+                                
+                              
+                                
+                        else:
+                            messagebox.showinfo("Advertencia", f"Columna dependiente '{columna_dependiente}' no encontrada en el archivo Excel.")
+                        
+                    elif tipo == "dependiente longitud":
+                        print("hola")
+                        columna_dependiente = regla.get("columna_dependiente")
+                        valor_dependiente = regla.get("valor_dependiente")
+                        valor_esperado = regla.get("valor_esperado")
+                        columna_dependiente1 = regla.get("columna_dependiente")
+                        idx_dependiente1 = df.columns.get_loc(columna_dependiente1) + 1
+
+                        if columna_dependiente in df.columns:
+                            # Filtrar las filas donde la columna dependiente tenga el valor esperado
+                            filas_dependientes = df[df[columna_dependiente] == valor_dependiente]
+                            
+                            max_longitud = int(regla["valor_esperado"].split("<= ")[1])
+                            
+                            violaciones = filas_dependientes[filas_dependientes[columna] .astype(str).str.len() > max_longitud]
+                            
+                            for idx in violaciones.index:
+                                # Marcar en rojo las celdas que violan la regla de longitud
+                                ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill  # +2 por el encabezado
+                                ws.cell(row=idx + 2, column=2).fill = rojo_fill  # Marcar en rojo
+                                ws.cell(row=idx + 2, column=idx_dependiente1).fill = rojo_fill
+      
+                        else:
+                            messagebox.showinfo("Advertencia", f"Columna dependiente '{columna_dependiente}' no encontrada en el archivo Excel.")
+                    
+                    elif tipo == "dependiente edad":
+                       
+                        columna_dependiente1 = regla.get("columna_dependiente")
+                        idx_dependiente1 = df.columns.get_loc(columna_dependiente1) + 1
+                        
+                        columna_dependiente = regla.get("columna_dependiente") # estado civil
+                        valor_dependiente = regla.get("valor_dependiente") # fecha de nacimiento
+                        valor_esperado = regla.get("valor_esperado")
+                        
+                        # calcular edad 
+                        
+
+                        if columna_dependiente in df.columns:
+                            # Filtrar las filas donde la columna dependiente tenga el valor esperado
+                            filas_dependientes = df[df[columna_dependiente] == valor_dependiente]
+                            
+                            max_longitud = int(regla["valor_esperado"].split("<= ")[1])
+                            
+                            violaciones = filas_dependientes[filas_dependientes[columna] .astype(str).str.len() > max_longitud]
+                            
+                            for idx in violaciones.index:
+                                # Marcar en rojo las celdas que violan la regla de longitud
+                                ws.cell(row=idx + 2, column=col_idx).fill = rojo_fill  # +2 por el encabezado
+                                ws.cell(row=idx + 2, column=2).fill = rojo_fill  # Marcar en rojo
+                                ws.cell(row=idx + 2, column=idx_dependiente1).fill = rojo_fill
+                                
+
+                                
+                           
+                                
                         else:
                             messagebox.showinfo("Advertencia", f"Columna dependiente '{columna_dependiente}' no encontrada en el archivo Excel.")
                     
